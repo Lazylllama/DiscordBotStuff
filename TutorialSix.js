@@ -1,35 +1,112 @@
-const { MessageEmbed} = require("discord.js");
-const { connection } = require("mongoose");
-require("../../Events/Client/ready");
+/// WELCOME EVENT ///
+const { MessageEmbed, WebhookClient, GuildMember } = require("discord.js");
 
 module.exports = {
-    name: "status",
-    description: "Displays the status of the client and database connection",
-    permission: "ADMINISTRATOR",
-    async execute(interaction, client) {
+    name: "guildMemberAdd",
+    /**
+     * 
+     * @param {GuildMember} member 
+     */
+    execute(member) {
+       
+        const { user, guild } = member;
 
-        await interaction.reply({
-                embeds: [
-                new MessageEmbed()
-                .setColor("#2f3136")
-                .setDescription(`**Client**: \`🟢 ONLINE\` - \`${client.ws.ping}ms\`\n - **Uptime**: <t:${parseInt(client.readyTimestamp / 1000)}:R>\n
-                **Database**: \`${switchTo(connection.readyState)}\`\n - **Uptime**: <t:${parseInt(client.readyTimestamp / 1000)}:R> `)
-            ]
+        member.roles.add("ROLEID");
+
+        const Welcomer = new WebhookClient({
+            id: "ID",
+            token: "TOKEN"
         });
-    }
-};
 
-function switchTo(val) {
-    var status = " ";
-    switch(val){
-        case 0 : status = `🔴 DISCONNCTED`
-        break;
-        case 1 : status = `🟢 CONNECTED`
-        break;
-        case 2 : status = `🟢 CONNECTING`
-        break;
-        case 3 : status = `🟢 DISCONNECTING`
-        break;
+        const Welcome = new MessageEmbed()
+        .setColor("AQUA")
+        .setAuthor(user.tag, user.avatarURL({dynamic: true, size: 512}))
+        .setThumbnail(user.avatarURL({dynamic: true, size: 512}))
+        .setDescription(`
+        Welcome ${member} to the **${guild.name}**!\n
+        Account Created: <t:${parseInt(user.createdTimestamp / 1000)}:R>\nLatest Member Count: **${guild.memberCount}**`)
+        .setFooter(`ID: ${user.id}`)
+
+        Welcomer.send({embeds: [Welcome]})
     }
-    return status;
+}
+
+/// LEAVE LOGS ///
+
+const { MessageEmbed, WebhookClient, GuildMember } = require("discord.js");
+
+module.exports = {
+    name: "guildMemberRemove",
+    /**
+     * 
+     * @param {GuildMember} member 
+     */
+    execute(member) {
+        const { user, guild } = member;
+
+        const Loger = new WebhookClient({
+            id: "ID",
+            token: "TOKEN"
+        });
+
+        const Welcome = new MessageEmbed()
+        .setColor("RED")
+        .setAuthor(user.tag, user.avatarURL({dynamic: true, size: 512}))
+        .setThumbnail(user.avatarURL({dynamic: true, size: 512}))
+        .setDescription(`
+        ${member} has left the community\n
+        Joined: <t:${parseInt(member.joinedTimestamp / 1000)}:R>\nLatest Member Count: **${guild.memberCount}**`)
+        .setFooter(`ID: ${user.id}`)
+
+        Loger.send({embeds: [Welcome]})
+    }
+}
+
+/// EMIT COMMAND ///
+
+const { CommandInteraction, Client} = require('discord.js');
+
+module.exports = {
+    name: "emitt",
+    description: "Event emitter",
+    permission: "ADMINISTRATOR",
+    options: [
+        {
+            name: "member",
+            description: "Guild Member Events.",
+            type: "STRING",
+            required: true,
+            choices: [
+                {
+                    name: "guildMemberAdd",
+                    value: "guildMemberAdd"
+                },
+                {
+                    name: "guildMemberRemove",
+                    value: "guildMemberRemove"
+                }
+            ]
+        }
+    ],
+    /**
+     * 
+     * @param {CommandInteraction} interaction 
+     * @param {Client} client 
+     */
+    execute(interaction, client) {
+        const choices = interaction.options.getString("member");
+
+        switch(choices) {
+            case "guildMemberAdd" : {
+                client.emit("guildMemberAdd", interaction.member);
+                interaction.reply({content: "Emitted the event.", ephemeral: true})
+            }
+            break;
+            case "guildMemberRemove" : {
+                client.emit("guildMemberRemove", interaction.member);
+                interaction.reply({content: "Emitted the event.", ephemeral: true})
+            }
+            break;
+        }
+    }
 }
